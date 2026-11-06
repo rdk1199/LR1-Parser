@@ -2,6 +2,14 @@
 (*Both terminal and non-terminal symbols will be represented by strings*)
 
 module ProductionMap = Map.Make(String)
+module SymbolSet = Set.Make(String)
+module SymbolMap = Map.Make(String)
+
+(**Represents an epsilon (empty)*)
+(**We will use $ to denote "special" symbols,*)
+(**and forbid them in normal symbols*)
+let epsilon = "$EPSILON$"
+let eof = "$EOF$"
 
 type production = {
   from_symbol : string;
@@ -10,5 +18,79 @@ type production = {
 
 type context_free_grammar = {
   start_symbol : string;
+
+  terminals : SymbolSet.t;
+  nonterminals : SymbolSet.t;
+
   productions : (production list) ProductionMap.t;
 }
+
+(**Check that two maps Symbol -> SymbolSet are equal*)
+let symbol_to_set_maps_equal map_1 map_2 =
+  SymbolMap.equal SymbolSet.equal map_1 map_2
+
+
+let first_set_process_production production first_set_map =
+   let from_symbol = production.from_symbol in
+   let to_symbols = production.to_symbols in
+   match to_symbols with
+   | [] -> first_set_map (**Empty production? Shouldn't happen but OK*)
+   | head :: tail -> 
+    (**The find should always succeed since we add entries for all symbols at the beginning*)
+    let start_set = SymbolMap.find head first_set_map in
+    let epsilon_removed_set = SymbolSet.remove epsilon start_set in
+    let gathered_set = 
+    if not (SymbolSet.mem epsilon start_set) then
+      start_set (**No epsilon, so only consider start set of the first symbol *)
+    else
+      let rec rec_process_production to_symbols_list_tail accumulated_first_set =
+        match to_symbols_list_tail with
+        | [] -> SymbolSet.add epsilon accumulated_first_set (**We processed the entire list, so add epsilon!*)
+        | head :: tail ->
+        let next_set = SymbolMap.find head first_set_map in
+        let next_set_no_epsilon = SymbolSet.remove epsilon next_set in
+        if SymbolSet.mem epsilon next_set then
+          rec_process_production tail (SymbolSet.union accumulated_first_set next_set_no_epsilon)
+        else
+          SymbolSet.union accumulated_first_set next_set 
+      in
+      rec_process_production tail epsilon_removed_set
+    in
+    let final_set = SymbolSet.union (SymbolMap.find from_symbol first_set_map) gathered_set in
+    SymbolMap.add from_symbol final_set first_set_map
+
+
+let update_first_sets cfg first_sets_map =
+  SymbolMap.fold(fun symbol production_list acc_map ->
+    List.fold_left (fun _ production ->
+      first_set_process_production production first_sets_map
+    ) acc_map production_list
+  ) cfg.productions first_sets_map
+
+let compute_first_sets cfg = 
+  let first_set_map = SymbolMap.empty in
+  let terminal_map = SymbolSet.fold (fun terminal acc_map ->
+    (**Each terminal's first set is just itself*)
+    SymbolMap.add terminal (SymbolSet.add terminal SymbolSet.empty) acc_map
+  ) cfg.terminals first_set_map
+  in
+
+  let start_map = SymbolSet.fold (fun nonterminal acc_map ->
+    (**Each nonterminal maps to the empty set to start*)
+    SymbolMap.add nonterminal SymbolSet.empty acc_map
+  ) cfg.nonterminals terminal_map
+  in
+
+  (**Iteratively add to first sets until all of them stop growing*)
+  let rec accumulate_first_sets prev_first_sets first_sets =
+    if symbol_to_set_maps_equal prev_first_sets first_sets then
+      (**Our last run did not do anything new - we are done*)
+      first_sets
+    else
+     let new_first_sets = update_first_sets cfg first_sets in
+     accumulate_first_sets first_sets new_first_sets 
+  in
+  accumulate_first_sets SymbolMap.empty start_map
+
+
+
