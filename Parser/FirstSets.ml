@@ -31,7 +31,7 @@ let first_set_process_production production first_set_map =
 
 let update_first_sets cfg first_sets_map =
   let open ContextFreeGrammar in
-  SymbolMap.fold(fun symbol production_list acc_map ->
+  ProductionMap.fold(fun symbol production_list acc_map ->
     List.fold_left (fun _ production ->
       first_set_process_production production first_sets_map
     ) acc_map production_list
