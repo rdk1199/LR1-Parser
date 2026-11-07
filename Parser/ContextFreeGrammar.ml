@@ -29,11 +29,13 @@ type context_free_grammar = {
 let symbol_to_set_maps_equal map_1 map_2 =
   SymbolMap.equal SymbolSet.equal map_1 map_2
 
-let string_of_production production =
-  let expansion = List.fold_left (fun acc_str symbol -> 
+let string_of_symbol_list symbol_list =
+  List.fold_left (fun acc_str symbol ->
       acc_str ^ " " ^ symbol
-  ) "" production.to_symbols
-  in
+  ) "" symbol_list
+
+let string_of_production production =
+  let expansion = string_of_symbol_list production.to_symbols in
   production.from_symbol ^ " ::= " ^ expansion
 
 let string_of_symbol_set symbol_set =
