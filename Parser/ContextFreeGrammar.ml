@@ -29,14 +29,26 @@ type context_free_grammar = {
 let symbol_to_set_maps_equal map_1 map_2 =
   SymbolMap.equal SymbolSet.equal map_1 map_2
 
-let print_symbol_to_set_map map =
-  SymbolMap.iter (fun symbol symbol_set ->
+let string_of_production production =
+  let expansion = List.fold_left (fun acc_str symbol -> 
+      acc_str ^ " " ^ symbol
+  ) "" production.to_symbols
+  in
+  production.from_symbol ^ " ::= " ^ expansion
+
+let string_of_symbol_set symbol_set =
+  SymbolSet.fold (fun symbol acc_str ->
+    acc_str ^ " " ^ symbol  
+  ) symbol_set ""
+
+let string_of_symbol_to_set_map map =
+  SymbolMap.fold (fun symbol symbol_set acc_str ->
     let set_str = SymbolSet.fold(fun symbol acc_str ->
       acc_str ^ " " ^ symbol
     ) symbol_set ""
     in
-    print_endline (symbol ^ ": " ^ set_str)
-  ) map 
+    acc_str ^ "\n" ^ symbol ^ ": " ^ set_str
+  ) map ""
 
 (*production_list is a list of list of symbol - the head is the lhs, remaining symbols are rhs*)
 let build_cfg start_symbol terminal_list nonterminal_list production_list = 

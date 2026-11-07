@@ -2,6 +2,7 @@ let first_set_process_production production first_set_map =
     let open ContextFreeGrammar in
     let from_symbol = production.from_symbol in
     let to_symbols = production.to_symbols in
+    (*let () = print_endline (string_of_production production) in*)
     match to_symbols with
     | [] -> first_set_map (**Empty production? Shouldn't happen but OK*)
     | head :: tail -> 
@@ -25,15 +26,19 @@ let first_set_process_production production first_set_map =
         in
         rec_process_production tail epsilon_removed_set
     in
+    (*let () = print_endline ("gathered set: " ^ (string_of_symbol_set gathered_set)) in*)
     let final_set = SymbolSet.union (SymbolMap.find from_symbol first_set_map) gathered_set in
-    SymbolMap.add from_symbol final_set first_set_map
+    (*let () = print_endline ("final set: " ^ (string_of_symbol_set) final_set) in *)
+    let out_map = SymbolMap.add from_symbol final_set first_set_map in
+    (*let () = print_endline ("returned map: " ^ (string_of_symbol_to_set_map out_map )) in*)
+    out_map
 
 
 let update_first_sets cfg first_sets_map =
   let open ContextFreeGrammar in
   ProductionMap.fold(fun symbol production_list acc_map ->
-    List.fold_left (fun _ production ->
-      first_set_process_production production first_sets_map
+    List.fold_left (fun inner_acc_map production ->
+      first_set_process_production production inner_acc_map
     ) acc_map production_list
   ) cfg.productions first_sets_map
 
@@ -54,6 +59,8 @@ let compute_first_sets cfg =
 
   (**Iteratively add to first sets until all of them stop growing*)
   let rec accumulate_first_sets prev_first_sets first_sets =
+    (*let () = print_endline "iteration" in
+    let () = print_endline (string_of_symbol_to_set_map first_sets) in*)
     if symbol_to_set_maps_equal prev_first_sets first_sets then
       (**Our last run did not do anything new - we are done*)
       first_sets
