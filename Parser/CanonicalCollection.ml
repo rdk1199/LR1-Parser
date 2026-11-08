@@ -30,6 +30,9 @@ end
 
 module LR1ItemSet = Set.Make(LR1ItemOrder)
 
+let lr1_item_equal item1 item2 =
+  LR1ItemOrder.compare item1 item2 = 0
+
 let string_of_lr1_item_set item_set = 
   LR1ItemSet.fold (fun item acc_str ->
     (string_of_lr1_item item) ^ "\n" ^ acc_str

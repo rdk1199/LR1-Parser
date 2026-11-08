@@ -1,14 +1,26 @@
 
 type action = 
-  | Shift of int
+  | Shift of int * CanonicalCollection.lr1_item (**Include the LR1 item for debug output*)
   | Reduce of ContextFreeGrammar.production
   | Accept of ContextFreeGrammar.production
 
 let string_of_action action =
   match action with
-  | Shift s -> "Shift " ^ (string_of_int s)
+  | Shift (s, item) -> "Shift " ^ (string_of_int s) ^ ", " ^ (CanonicalCollection.string_of_lr1_item item)
   | Reduce production -> "Reduce " ^ (ContextFreeGrammar.string_of_production production)
   | Accept production -> "Accept " ^ (ContextFreeGrammar.string_of_production production)
+
+let action_equal action1 action2 =
+  match (action1, action2) with
+  | Shift (s1, _), Shift(s2, _) -> s1 = s2 (**the item is only needed for debug purposes - the shift is the only thing that actually matters*)
+  | Reduce prod1, Reduce prod2 -> ContextFreeGrammar.production_equal prod1 prod2
+  | Accept prod1, Accept prod2 -> ContextFreeGrammar.production_equal prod1 prod2
+  | _, _ -> false
+
+type conflict_resolution_opt =
+  | Fail
+  | PreferShift
+  | PreferReduce
 
 type 'a state_symbol_table = {
   entries : 'a ContextFreeGrammar.SymbolMap.t Iarray.t;
@@ -60,7 +72,57 @@ let goto_table_get goto_table state symbol =
 let string_of_parse_table parse_table =
   "ACTION: \n" ^ (string_of_action_table parse_table.action_table) ^"\nGOTO: \n" ^ (string_of_goto_table parse_table.goto_table) ^ "\n"
 
-let build_action_table cfg canonical_collection = 
+
+
+let string_of_shift_reduce_conflict_message existing_action new_action conflict_resolution_opt cc_index symbol =
+   ("Shift/Reduce conflict for state " ^ (string_of_int cc_index) ^ ", symbol " ^ symbol ^ ":\n") ^ 
+   ((string_of_action existing_action) ^ "  |  " ^ (string_of_action new_action) ^ "\n") ^
+   (
+      match conflict_resolution_opt with
+      | PreferShift -> "Preferring shift\n"
+      | PreferReduce -> "Preferring reduce\n"
+      | Fail -> "Failing\n"
+   )
+
+let insert_action action_map symbol action conflict_resolution_opt cc_index =
+  let existing_action_opt = ContextFreeGrammar.SymbolMap.find_opt symbol action_map in
+  let new_map = ContextFreeGrammar.SymbolMap.add symbol action action_map in
+  match existing_action_opt with
+  | None -> new_map (**No conflict*)
+  | Some existing_action ->
+    if action_equal existing_action action then
+      new_map (**No conflict because actions are the same*)
+    else
+      match existing_action, action, conflict_resolution_opt with
+      | _, _, Fail                                    (**If conflict resolution strategy is to fail, then always fail*)
+      | Accept _, _, _                                (**Don't resolve accept conflicts*)
+      | _, Accept _, _      
+      | Shift _, Shift _, _                           (**Don't resolve shift-shift conflicts*)
+      | Reduce _, Reduce _, _ -> 
+        let () = print_endline ("Unresolvable conflict for state " ^ (string_of_int cc_index) ^ ", symbol " ^ symbol ^ " :\n") in
+        let () = print_endline ((string_of_action existing_action) ^ "  |  " ^ (string_of_action action) ^ "\n") in
+        assert(false)        (**Don't resolve reduce-reduce conflicts*)
+      | Shift _, Reduce _, PreferShift ->                
+        (**Don't override shift if we prefer shifts*)
+        let () = print_endline (string_of_shift_reduce_conflict_message existing_action action conflict_resolution_opt cc_index symbol) in 
+        action_map
+      | Reduce _, Shift _, PreferReduce ->  
+        (**Don't override reduce if we prefer reduce*)
+        let () = print_endline (string_of_shift_reduce_conflict_message existing_action action conflict_resolution_opt cc_index symbol) in
+        action_map
+      | Shift _, Reduce _, PreferReduce ->               
+        (**Override shift with reduce if reduce preferred*)
+        let () = print_endline (string_of_shift_reduce_conflict_message existing_action action conflict_resolution_opt cc_index symbol) in
+        new_map  
+      | Reduce _, Shift _, PreferShift -> 
+        let () = print_endline (string_of_shift_reduce_conflict_message existing_action action conflict_resolution_opt cc_index symbol) in
+        new_map      
+
+
+ 
+
+
+let build_action_table cfg canonical_collection conflict_resolution_opt = 
   let open ContextFreeGrammar in
   let open CanonicalCollection in
   let action_entry_map_list, _ =
@@ -71,14 +133,18 @@ let build_action_table cfg canonical_collection =
       match item.next_symbols with
       | [] ->
         if item.from_symbol = cfg.start_symbol && item.lookahead = eof then
-          SymbolMap.add eof (Accept {from_symbol = item.from_symbol; to_symbols = item.prev_symbols;}) acc_action_map
+          let new_action = Accept {from_symbol = item.from_symbol; to_symbols = item.prev_symbols;} in
+          insert_action acc_action_map eof new_action conflict_resolution_opt cc_index
         else 
-          SymbolMap.add item.lookahead (Reduce {from_symbol = item.from_symbol; to_symbols = item.prev_symbols;}) acc_action_map
+          let new_action = Reduce {from_symbol = item.from_symbol; to_symbols = item.prev_symbols;} in
+          insert_action acc_action_map item.lookahead new_action conflict_resolution_opt cc_index
       | next_symbol :: remaining_symbols ->
         if SymbolSet.mem next_symbol cfg.terminals then
           match find_goto canonical_collection cc_index next_symbol with
           | None -> assert(false) (*Should not happen*)
-          | Some j ->  SymbolMap.add next_symbol (Shift j) acc_action_map
+          | Some j ->  
+            let new_action = Shift (j, item) in
+            insert_action acc_action_map next_symbol new_action conflict_resolution_opt cc_index
         else
           (**ignore nonterminals*)
           acc_action_map
@@ -124,7 +190,7 @@ let build_goto_table cfg canonical_collection =
   (**Reverse the list because we were prepending*)
   {entries = Iarray.of_list (List.rev (padding @ map_list));}
 
-let build_parse_table cfg canonical_collection = {
-  action_table = build_action_table cfg canonical_collection;
+let build_parse_table cfg canonical_collection conflict_resolution_strategy = {
+  action_table = build_action_table cfg canonical_collection conflict_resolution_strategy;
   goto_table = build_goto_table cfg canonical_collection;
 }

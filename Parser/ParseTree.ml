@@ -56,7 +56,7 @@ let parse token_list parse_table =
             let prod_length = List.length production.to_symbols in
             let child_symbols = List.rev (first_n_of_list node_stack prod_length) in
             {root = Production (production, child_symbols)} (**Successful parse*)
-          | Shift s -> rec_parse remaining_tokens (Leaf token :: node_stack) (s :: state_stack)
+          | Shift (s, _) -> rec_parse remaining_tokens (Leaf token :: node_stack) (s :: state_stack)
           | Reduce production -> 
             let prod_length = List.length production.to_symbols in
             let child_symbols = List.rev (first_n_of_list node_stack prod_length) in

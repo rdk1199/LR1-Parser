@@ -18,6 +18,10 @@ type production = {
   to_symbols : string list;
 }
 
+let production_equal prod1 prod2 =
+  (prod1.from_symbol = prod2.from_symbol) &&
+  (prod1.to_symbols = prod2.to_symbols)
+
 type context_free_grammar = {
   start_symbol : string;
 
@@ -55,28 +59,28 @@ let string_of_symbol_to_set_map map =
   ) map ""
 
 (*production_list is a list of list of symbol - the head is the lhs, remaining symbols are rhs*)
-let build_cfg start_symbol terminal_list nonterminal_list production_list = 
-    let terminal_set = SymbolSet.of_list (eof :: terminal_list) in
-    let nonterminal_set = SymbolSet.of_list nonterminal_list in
-    let production_map = List.fold_left (fun acc_map symbol_list ->
+let build_cfg start_symbol production_list = 
+    let production_map, nonterminal_symbols, all_symbols = List.fold_left (fun (acc_map, acc_nts, acc_symbols) symbol_list ->
       match symbol_list with
-      | [] -> acc_map
+      | [] -> acc_map, acc_nts, acc_symbols
       | hd :: tail ->
         let new_production = {
           from_symbol = hd;
           to_symbols = tail;
         } in
+        let new_nt_set = (SymbolSet.add hd acc_nts) in
+        let new_acc_symbols = (SymbolSet.union (SymbolSet.of_list symbol_list) acc_symbols) in
         let old_entry = ProductionMap.find_opt hd acc_map in
         match old_entry with
-        | None -> ProductionMap.add hd [new_production] acc_map
+        | None -> (ProductionMap.add hd [new_production] acc_map, new_nt_set, new_acc_symbols)
         | Some old_production_list ->
-          ProductionMap.add hd (new_production :: old_production_list) acc_map
-    ) ProductionMap.empty production_list
+          (ProductionMap.add hd (new_production :: old_production_list) acc_map, new_nt_set, new_acc_symbols)
+    ) (ProductionMap.empty, SymbolSet.empty, (SymbolSet.add eof SymbolSet.empty)) production_list
     in
     {
       start_symbol = start_symbol;
-      terminals = terminal_set;
-      nonterminals = nonterminal_set;
+      terminals = SymbolSet.diff all_symbols nonterminal_symbols;
+      nonterminals = nonterminal_symbols;
       productions = production_map;
     }
 

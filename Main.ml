@@ -15,11 +15,9 @@ let test_cfg_production_list = [
   ["Pair"; "("; ")"];
 ]
 
-let terminal_list = ["("; ")"]
-let nonterminal_list = ["Goal"; "List"; "Pair"]
 let start_symbol = "Goal"
 
-let test_cfg = build_cfg start_symbol terminal_list nonterminal_list test_cfg_production_list
+let test_cfg = build_cfg start_symbol test_cfg_production_list
 
 let first_sets = compute_first_sets test_cfg
 
@@ -44,11 +42,15 @@ let () = print_endline (string_of_lr1_item_set (cc_goto closure "(" test_cfg fir
 let canonical_collection = construct_canonical_collection test_cfg
 let () = print_endline (string_of_canonical_collection canonical_collection)
 
-let parse_table = build_parse_table test_cfg canonical_collection
+let parse_table = build_parse_table test_cfg canonical_collection Fail
 let () = print_endline ("PARSE TABLE:\n" ^ (string_of_parse_table parse_table))
 
 let paren_regex = "\\(|\\)"
 let tokenizer = build_tokenizer [("(", "("); (")", ")")] [("PAREN",paren_regex)]
+
+
+
+
 
 let test_string_1 = "()(((())))()(((())))"
 let token_list_1 = tokenize_string tokenizer test_string_1
@@ -56,6 +58,20 @@ let () = print_endline (token_list_to_string token_list_1)
 
 let parse_tree = parse token_list_1 parse_table
 let () = print_endline (string_of_parse_tree parse_tree)
+
+let if_else_prod_list = [
+  ["Goal"; "Stmt"];
+  ["Stmt"; "if"; "expr" ; "then"; "Stmt"];
+  ["Stmt"; "if"; "expr" ; "then"; "Stmt"; "else"; "Stmt"];
+  ["Stmt"; "assign"]
+]
+
+let cfg2 = build_cfg "Goal" if_else_prod_list
+let cc2 = construct_canonical_collection cfg2
+let parse_table_2 = build_parse_table cfg2 cc2 PreferShift
+
+
+
 
 
 
