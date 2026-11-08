@@ -56,7 +56,7 @@ let string_of_symbol_to_set_map map =
 
 (*production_list is a list of list of symbol - the head is the lhs, remaining symbols are rhs*)
 let build_cfg start_symbol terminal_list nonterminal_list production_list = 
-    let terminal_set = SymbolSet.of_list terminal_list in
+    let terminal_set = SymbolSet.of_list (eof :: terminal_list) in
     let nonterminal_set = SymbolSet.of_list nonterminal_list in
     let production_map = List.fold_left (fun acc_map symbol_list ->
       match symbol_list with

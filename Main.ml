@@ -1,9 +1,11 @@
 
 open Lexer
+open Lexer.Tokenizer
 open Parser.ContextFreeGrammar
 open Parser.FirstSets
 open Parser.CanonicalCollection
 open Parser.ParseTables
+open Parser.ParseTree
 
 let test_cfg_production_list = [
   ["Goal"; "List"];
@@ -13,7 +15,7 @@ let test_cfg_production_list = [
   ["Pair"; "("; ")"];
 ]
 
-let terminal_list = ["("; ")"; eof]
+let terminal_list = ["("; ")"]
 let nonterminal_list = ["Goal"; "List"; "Pair"]
 let start_symbol = "Goal"
 
@@ -45,24 +47,13 @@ let () = print_endline (string_of_canonical_collection canonical_collection)
 let parse_table = build_parse_table test_cfg canonical_collection
 let () = print_endline ("PARSE TABLE:\n" ^ (string_of_parse_table parse_table))
 
-let test_cfg_production_list_2 = [
-  ["A"; "B"; "C"; "D"];
-  ["B"; epsilon];
-  ["C"; epsilon];
-  ["D"; epsilon];
-  ["B"; "b"];
-  ["C"; "c"];
-  ["D"; "d"];
-]
+let paren_regex = "\\(|\\)"
+let tokenizer = build_tokenizer [("(", "("); (")", ")")] [("PAREN",paren_regex)]
 
-let terminal_list_2 = ["b"; "c"; "d"; epsilon]
-let nonterminal_list_2 = ["A"; "B"; "C"; "D"]
-let start_symbol_2 = "A"
+let test_string_1 = "(((())))(())((()))()((()))()"
+let token_list_1 = tokenize_string tokenizer test_string_1
+let () = print_endline (token_list_to_string token_list_1)
 
-let test_cfg_2 = build_cfg start_symbol_2 terminal_list_2 nonterminal_list_2 test_cfg_production_list_2
-let first_sets_2 = compute_first_sets test_cfg_2
-
-let () = print_endline (string_of_symbol_to_set_map first_sets_2)
-let () = print_endline (string_of_symbol_set (compute_first_set_of_symbol_list ["B"; "C"; "D"] first_sets_2))
+let _ = parse token_list_1 parse_table
 
 

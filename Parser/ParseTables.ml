@@ -45,6 +45,18 @@ type parse_table = {
   goto_table : int state_symbol_table;
 }
 
+let action_table_get action_table state symbol =
+  let opt_action = ContextFreeGrammar.SymbolMap.find_opt symbol (Iarray.get action_table.entries state) in
+  match opt_action with
+  | None -> None
+  | Some action -> Some action
+
+let goto_table_get goto_table state symbol =
+  let opt_state = ContextFreeGrammar.SymbolMap.find_opt symbol (Iarray.get goto_table.entries state) in
+  match opt_state with
+  | None -> None
+  | Some to_state -> Some to_state
+
 let string_of_parse_table parse_table =
   "ACTION: \n" ^ (string_of_action_table parse_table.action_table) ^"\nGOTO: \n" ^ (string_of_goto_table parse_table.goto_table) ^ "\n"
 
