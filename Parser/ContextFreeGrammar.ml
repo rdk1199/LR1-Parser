@@ -5,10 +5,12 @@ module ProductionMap = Map.Make(String)
 module SymbolSet = Set.Make(String)
 module SymbolMap = Map.Make(String)
 
-(**Represents an epsilon (empty)*)
+
 (**We will use $ to denote "special" symbols,*)
 (**and forbid them in normal symbols*)
+(**Represents an epsilon (empty)*)
 let epsilon = "$EPSILON$"
+(**Represents end of file*)
 let eof = "$EOF$"
 
 type production = {

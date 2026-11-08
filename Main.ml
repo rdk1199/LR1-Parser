@@ -4,9 +4,6 @@ open Parser.ContextFreeGrammar
 open Parser.FirstSets
 open Parser.CanonicalCollection
 
-let () = print_endline "Hello, World!"
-
-
 let test_cfg_production_list = [
   ["Goal"; "List"];
   ["List"; "List"; "Pair"];
@@ -36,7 +33,13 @@ let init_item_set = LR1ItemSet.add init_item LR1ItemSet.empty
 
 let closure = cc_closure init_item_set test_cfg first_sets
 
+let () = print_endline "Start closure: "
 let () = print_endline (string_of_lr1_item_set closure)
+let () = print_endline "Goto: "
+let () = print_endline (string_of_lr1_item_set (cc_goto closure "(" test_cfg first_sets))
+
+let canonical_collection = construct_canonical_collection test_cfg
+let () = print_endline (string_of_canonical_collection canonical_collection)
 
 
 let test_cfg_production_list_2 = [
