@@ -2,13 +2,13 @@
 type action = 
   | Shift of int
   | Reduce of ContextFreeGrammar.production
-  | Accept
+  | Accept of ContextFreeGrammar.production
 
 let string_of_action action =
   match action with
   | Shift s -> "Shift " ^ (string_of_int s)
   | Reduce production -> "Reduce " ^ (ContextFreeGrammar.string_of_production production)
-  | Accept -> "Accept"
+  | Accept production -> "Accept " ^ (ContextFreeGrammar.string_of_production production)
 
 type 'a state_symbol_table = {
   entries : 'a ContextFreeGrammar.SymbolMap.t Iarray.t;
@@ -71,7 +71,7 @@ let build_action_table cfg canonical_collection =
       match item.next_symbols with
       | [] ->
         if item.from_symbol = cfg.start_symbol && item.lookahead = eof then
-          SymbolMap.add eof Accept acc_action_map
+          SymbolMap.add eof (Accept {from_symbol = item.from_symbol; to_symbols = item.prev_symbols;}) acc_action_map
         else 
           SymbolMap.add item.lookahead (Reduce {from_symbol = item.from_symbol; to_symbols = item.prev_symbols;}) acc_action_map
       | next_symbol :: remaining_symbols ->

@@ -3,9 +3,28 @@ type parse_tree_node =
   | Production of ContextFreeGrammar.production * parse_tree_node list
   | Leaf of Lexer.Tokenizer.token
 
+let string_of_parse_tree_node node = 
+  let rec offset_string_of_parse_tree_node node offset =
+    match node with
+    | Leaf token -> offset ^ token.token_type
+    | Production (production, node_list) ->
+      offset ^ production.from_symbol ^
+      (
+        List.fold_left (fun acc_str node ->
+        acc_str ^ "\n" ^ (offset_string_of_parse_tree_node node ("  " ^ offset))
+        ) "" node_list
+      )
+  in
+  offset_string_of_parse_tree_node node ""
+
+
 type parse_tree = {
   root : parse_tree_node
 }
+
+let string_of_parse_tree parse_tree =
+  string_of_parse_tree_node parse_tree.root 
+
 
 (**Helper : get n items off a list - not tail recursive *)
 let rec first_n_of_list list n =
@@ -33,7 +52,10 @@ let parse token_list parse_table =
         | None -> assert(false) (*Parse error*)
         | Some action ->
           match action with
-          | Accept -> {root = List.hd node_stack} (**Successful parse*)
+          | Accept production -> 
+            let prod_length = List.length production.to_symbols in
+            let child_symbols = List.rev (first_n_of_list node_stack prod_length) in
+            {root = Production (production, child_symbols)} (**Successful parse*)
           | Shift s -> rec_parse remaining_tokens (Leaf token :: node_stack) (s :: state_stack)
           | Reduce production -> 
             let prod_length = List.length production.to_symbols in

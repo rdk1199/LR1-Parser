@@ -50,10 +50,12 @@ let () = print_endline ("PARSE TABLE:\n" ^ (string_of_parse_table parse_table))
 let paren_regex = "\\(|\\)"
 let tokenizer = build_tokenizer [("(", "("); (")", ")")] [("PAREN",paren_regex)]
 
-let test_string_1 = "(((())))(())((()))()((()))()"
+let test_string_1 = "()(((())))()(((())))"
 let token_list_1 = tokenize_string tokenizer test_string_1
 let () = print_endline (token_list_to_string token_list_1)
 
-let _ = parse token_list_1 parse_table
+let parse_tree = parse token_list_1 parse_table
+let () = print_endline (string_of_parse_tree parse_tree)
+
 
 
