@@ -60,6 +60,7 @@ let string_of_cc_transition_list transition_list =
     acc_str ^ "\n" ^ (string_of_cc_transition transition)  
   ) "" transition_list
 
+(**transitions will be sorted by from_state*)
 type canonical_collection = {
   canonical_sets : LR1ItemSet.t list;
   transitions : cc_transition list;
@@ -68,13 +69,15 @@ type canonical_collection = {
 let string_of_canonical_collection cc =
   "Canonical sets:\n" ^
   (List.fold_left (fun acc_str canonical_set ->
-    (string_of_lr1_item_set canonical_set) ^ "\n ============ \n" ^ acc_str  
+    acc_str ^ (string_of_lr1_item_set canonical_set) ^ "\n ============ \n"  
   ) "" cc.canonical_sets) ^
-  "\nTransitions: \n" ^
-  (List.fold_left (fun acc_str transition ->
-    (string_of_cc_transition transition) ^ "\n" ^ acc_str
-  ) "" cc.transitions)
+  "\nTransitions: \n" ^ (string_of_cc_transition_list cc.transitions)
 
+(**This might have to be optimized into some kind of lookup table*)
+let find_goto canonical_collection i symbol =
+  match List.find_opt (fun elt -> elt.from_state = i && elt.symbol = symbol) canonical_collection.transitions with
+  | None -> None
+  | Some transition -> Some transition.to_state
 
 let cc_closure lr1_set cfg first_sets = 
   let open ContextFreeGrammar in
@@ -209,7 +212,7 @@ let process_new_canonical_set canonical_set current_canonical_collection new_can
     in
     (all_items_new_canonical_sets, all_items_new_transitions)
     
-
+(**guarantees that transitions are sorted by start state*)
 let construct_canonical_collection cfg = 
   let first_sets = FirstSets.compute_first_sets cfg in
   let rec build_canonical_collection current_canonical_collection new_canonical_sets =
@@ -231,5 +234,6 @@ let construct_canonical_collection cfg =
   let start_closure = cc_closure (LR1ItemSet.of_list start_items) cfg first_sets in
   let cc_with_duplicates = build_canonical_collection {canonical_sets = []; transitions = [];} [start_closure;] in
   (**our algorithm doesn't filter duplicate transitions, so filter them now*)
-  {cc_with_duplicates with transitions = List.sort_uniq compare_cc_transitions cc_with_duplicates.transitions}
+  (**Also reverse the collection list so the states are in order*)
+  {canonical_sets = (List.rev cc_with_duplicates.canonical_sets); transitions = List.sort_uniq compare_cc_transitions cc_with_duplicates.transitions}
   

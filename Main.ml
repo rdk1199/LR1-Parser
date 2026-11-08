@@ -3,6 +3,7 @@ open Lexer
 open Parser.ContextFreeGrammar
 open Parser.FirstSets
 open Parser.CanonicalCollection
+open Parser.ParseTables
 
 let test_cfg_production_list = [
   ["Goal"; "List"];
@@ -41,6 +42,8 @@ let () = print_endline (string_of_lr1_item_set (cc_goto closure "(" test_cfg fir
 let canonical_collection = construct_canonical_collection test_cfg
 let () = print_endline (string_of_canonical_collection canonical_collection)
 
+let parse_table = build_parse_table test_cfg canonical_collection
+let () = print_endline ("PARSE TABLE:\n" ^ (string_of_parse_table parse_table))
 
 let test_cfg_production_list_2 = [
   ["A"; "B"; "C"; "D"];
