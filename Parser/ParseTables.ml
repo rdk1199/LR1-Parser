@@ -190,7 +190,9 @@ let build_goto_table cfg canonical_collection =
   (**Reverse the list because we were prepending*)
   {entries = Iarray.of_list (List.rev (padding @ map_list));}
 
-let build_parse_table cfg canonical_collection conflict_resolution_strategy = {
-  action_table = build_action_table cfg canonical_collection conflict_resolution_strategy;
-  goto_table = build_goto_table cfg canonical_collection;
-}
+let build_parse_table cfg conflict_resolution_strategy = 
+  let canonical_collection = CanonicalCollection.construct_canonical_collection cfg in
+  {
+    action_table = build_action_table cfg canonical_collection conflict_resolution_strategy;
+    goto_table = build_goto_table cfg canonical_collection;
+  }
