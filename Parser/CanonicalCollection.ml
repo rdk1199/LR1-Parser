@@ -9,6 +9,13 @@ type lr1_item = {
   lookahead : string;
 }
 
+let empty_lr1_item = {
+  from_symbol = "";
+  prev_symbols = [];
+  next_symbols = [];
+  lookahead = "";
+}
+
  let string_of_lr1_item lr1_item = 
   "[ " ^ lr1_item.from_symbol ^ " -> " ^
   (ContextFreeGrammar.string_of_symbol_list lr1_item.prev_symbols) ^ " . " ^

@@ -1,0 +1,6 @@
+Goal
+Goal ::=  List   
+List ::=  List Pair
+        | Pair
+Pair ::=  ( Pair )
+        | ( )

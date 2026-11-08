@@ -1,0 +1,3 @@
+(library
+  (name ParserIO)
+  (libraries Parser str))
