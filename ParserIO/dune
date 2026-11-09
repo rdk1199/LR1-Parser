@@ -1,3 +1,4 @@
 (library
   (name ParserIO)
+  (public_name LR1-Parser.ParserIO)
   (libraries Parser str))

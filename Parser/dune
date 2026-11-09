@@ -1,3 +1,4 @@
 (library
   (name Parser)
+  (public_name LR1-Parser.Parser)
   (libraries Lexer))
