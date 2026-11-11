@@ -9,60 +9,12 @@ open Parser.ParseTree
 open ParserIO.CFGReader
 open ParserIO.ParseTableIO
 
-let start_symbol = "Goal"
 
-let test_cfg = read_cfg_from_file "test/paren_cfg_file"
+let ocaml_cfg = read_cfg_from_file "test/OCamlGrammar"
 
-let first_sets = compute_first_sets test_cfg
+let ocaml_canonical_collection = construct_canonical_collection ocaml_cfg
+let () = print_endline (string_of_canonical_collection ocaml_canonical_collection)
 
-let () = print_endline (string_of_symbol_to_set_map first_sets)
-
-let init_item = {
-  from_symbol = "Goal";
-  prev_symbols = [];
-  next_symbols = ["List"];
-  lookahead = eof;
-}
-
-let init_item_set = LR1ItemSet.add init_item LR1ItemSet.empty
-
-let closure = cc_closure init_item_set test_cfg first_sets
-
-let () = print_endline "Start closure: "
-let () = print_endline (string_of_lr1_item_set closure)
-let () = print_endline "Goto: "
-let () = print_endline (string_of_lr1_item_set (cc_goto closure "(" test_cfg first_sets))
-
-let canonical_collection = construct_canonical_collection test_cfg
-let () = print_endline (string_of_canonical_collection canonical_collection)
-
-(*let parse_table = build_parse_table test_cfg Fail*)
-
-let parse_table = read_parse_table_from_files "test/paren_action.action" "test/paren_goto.goto"
-let () = print_endline ("PARSE TABLE:\n" ^ (string_of_parse_table parse_table))
-
-let () = write_action_table_to_file "test/paren_action" parse_table.action_table
-let () = write_goto_table_to_file "test/paren_goto" parse_table.goto_table
-
-let paren_regex = "\\(|\\)"
-let tokenizer = build_tokenizer [("(", "("); (")", ")")] [("PAREN",paren_regex)]
-
-let test_string_1 = "()(((())))()(((())))"
-let token_list_1 = tokenize_string tokenizer test_string_1
-let () = print_endline (token_list_to_string token_list_1)
-
-let parse_tree = parse token_list_1 parse_table
-let () = print_endline (string_of_parse_tree parse_tree)
-
-let if_else_prod_list = [
-  ["Goal"; "Stmt"];
-  ["Stmt"; "if"; "expr" ; "then"; "Stmt"];
-  ["Stmt"; "if"; "expr" ; "then"; "Stmt"; "else"; "Stmt"];
-  ["Stmt"; "assign"]
-]
-
-let cfg2 = build_cfg "Goal" if_else_prod_list
-let parse_table_2 = build_parse_table cfg2 PreferShift
 
 
 

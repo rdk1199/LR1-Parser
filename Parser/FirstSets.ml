@@ -37,10 +37,10 @@ let first_set_process_production production first_set_map =
 let update_first_sets cfg first_sets_map =
   let open ContextFreeGrammar in
   ProductionMap.fold(fun symbol production_list acc_map ->
-    List.fold_left (fun inner_acc_map production ->
-      first_set_process_production production inner_acc_map
+    List.fold_left (fun inner_acc_map production_index ->
+      first_set_process_production (Iarray.get cfg.production_array production_index) inner_acc_map
     ) acc_map production_list
-  ) cfg.productions first_sets_map
+  ) cfg.nt_to_production_map first_sets_map
 
 let compute_first_sets cfg = 
   let open ContextFreeGrammar in

@@ -1,0 +1,643 @@
+ocaml-file
+
+ident ::= lowercase-ident
+       |  capitalized-ident
+
+label-name ::= lowercase-ident
+
+label ::= ~ label-name :
+
+optlabel ::= ? label-name :
+
+
+value-name  ::=  lowercase-ident
+           |  ( operator-name )
+ 
+operator-name ::= prefix-symbol 
+                 | infix-op
+ 
+infix-op ::=  infix-symbol
+   | * 
+    | + 
+    | - 
+    | -. 
+    | = 
+    | != 
+    | < 
+    | > 
+    | or 
+    | || 
+    | & 
+    | && 
+    | :=
+   | mod
+    | land 
+    | lor 
+    | lxor 
+    | lsl 
+    | lsr 
+    | asr
+ 
+constr-name  ::=  capitalized-ident
+ 
+tag-name  ::=  capitalized-ident
+ 
+typeconstr-name  ::=  lowercase-ident
+ 
+field-name  ::=  lowercase-ident
+ 
+module-name  ::=  capitalized-ident
+ 
+modtype-name ::=  ident
+ 
+class-name  ::=  lowercase-ident
+ 
+inst-var-name  ::=  lowercase-ident
+ 
+method-name  ::=  lowercase-ident
+
+value-path  ::=  value-name
+                | module-path . value-name
+ 
+constr  ::=  module-path . constr-name
+   |  constr-name
+ 
+typeconstr  ::=  extended-module-path . typeconstr-name
+   |  typeconstr-name
+ 
+field  ::=  module-path . field-name
+   |  field-name
+ 
+modtype-path  ::=  extended-module-path . modtype-name
+   |  modtype-name
+ 
+class-path  ::=  module-path . class-name
+   |  class-name
+ 
+classtype-path  ::=  extended-module-path . class-name
+   |  class-name
+
+dot-module-path ::= . module-name
+                  | . module-name dot-module-path
+
+module-path  ::=  module-name
+               | module-name dot-module-path
+ 
+dot-extended-module-path ::= . extended-module-name 
+                          |  . extended-module-name dot-extended-module-path
+                            
+extended-module-path  ::=  extended-module-name 
+                         |  extended-module-name dot-extended-module-path
+ 
+paren-extended-module-path ::= ( extended-module-path )
+                             | ( extended-module-path ) paren-extended-module-path
+
+extended-module-name  ::=  module-name
+                          | module-name paren-extended-module-path
+
+typexpr  ::=  ' ident
+   |   _
+   |   ( typexpr )
+   |   typexpr -> typexpr
+    |    label-name : typexpr -> typexpr
+    |    ? label-name : typexpr -> typexpr
+   |   typeconstr
+   |   typexpr typeconstr
+   |   typexpr as ' ident
+   |   polymorphic-variant-type
+   |   < .. >
+    |   < >
+   |   # classtype-path
+   |   typexpr # class-path
+   |   ( typexpr typexpr-comma-list ) # class-path
+    |   typexpr * typexpr typexpr-star-list
+    |   ( typexpr typexpr-comma-list ) typeconstr
+    |   < method-type method-type-semi-colon-list >
+    |   < method-type method-type-semi-colon-list ; >
+    |   < method-type method-type-semi-colon-list ; .. >
+    
+
+typexpr-comma-list ::= , typexpr typexpr-comma-list
+                   | $EPSILON$
+
+typexpr-star-list ::= * typexpr typexpr-star-list
+                  | $EPSILON$  
+        
+method-type-semi-colon-list ::= ; method-type method-type-semi-colon-list
+                           | $EPSILON$
+
+poly-typexpr  ::=  typexpr
+   |   type-ident-nonempty-list . typexpr
+
+type-ident-nonempty-list ::= ' ident type-ident-nonempty-list
+                           | ' ident
+ 
+method-type  ::=  method-name : poly-typexpr
+
+
+
+polymorphic-variant-type  ::=  [ tag-spec-first vert-tag-spec-list ]
+    |   [> vert-tag-spec-list ]
+   |   [> tag-spec vert-tag-spec-list ]
+   |   [< tag-spec-full vert-tag-spec-full-list ]
+    |   [< | tag-spec-full vert-tag-spec-full-list ]
+    |   [<  tag-spec-full vert-tag-spec-full-list  > prime-tag-name-nonempty-list ]
+    |   [< | tag-spec-full vert-tag-spec-full-list > prime-tag-name-nonempty-list ]
+
+vert-tag-spec-list ::= | tag-spec vert-tag-spec-list
+                    |  $EPSILON$
+
+vert-tag-spec-full-list ::= | tag-spec-full vert-tag-spec-full-list
+                            | $EPSILON$
+
+prime-tag-name-nonempty-list ::= ` tag-name prime-tag-name-nonempty-list
+                             |   ` tag-name
+
+
+
+
+tag-spec-first  ::=  ` tag-name 
+                |   ` tag-name of typexpr 
+               |   | tag-spec
+                |   typexpr | tag-spec
+ 
+tag-spec  ::=  ` tag-name
+              | ` tag-name of typexpr 
+             | typexpr
+ 
+tag-spec-full  ::=  ` tag-name of typexpr and-typexpr-list
+                |   ` tag-name of & typexpr and-typexpr-list
+                |   ` tag-name
+               |  typexpr
+
+and-typexpr-list ::= & typexpr and-typexpr-list
+                 | $EPSILON$
+
+constant  ::=  integer-literal
+   |   int32-literal
+   |   int64-literal
+   |   nativeint-literal
+   |   float-literal
+   |   char-literal
+   |   string-literal
+   |   constr
+   |   false
+   |   true
+   |   ( )
+   |   begin end
+   |   [ ]
+   |   [| |]
+   |   ` tag-name
+
+
+
+pattern  ::=  value-name
+   |   _
+   |   constant
+   |   pattern as value-name
+   |   ( pattern )
+   |   ( pattern : typexpr )
+   |   pattern | pattern
+   |   constr pattern
+   |   ` tag-name pattern
+   |   # typeconstr
+   |   pattern comma-pattern-nonempty-list
+   |   [ pattern semi-colon-pattern-list optional-colon ]
+   |   pattern :: pattern
+   |   [| pattern semi-colon-pattern-list optional-colon |]
+   |   char-literal .. char-literal
+   |   lazy pattern
+   |   exception pattern
+   |   module-path . ( pattern )
+   |   module-path . [ pattern ]
+   |   module-path . [| pattern |]
+   |   module-path . { pattern }
+   |   field-typexpr-pattern-list-list
+
+
+field-typexpr-pattern-list ::=  ; field optional-colon-typexpr optional-equal-pattern field-typexpr-pattern-list
+                           | $EPSILON$
+
+field-typexpr-pattern-list-list ::=  field optional-colon-typexpr optional-equal-pattern field-typexpr-pattern-list optional-colon-underscore optional-colon field-typexpr-pattern-list-list
+                                  | $EPSILON$          
+
+optional-colon ::= ;
+                | $EPSILON$
+
+optional-colon-underscore ::= ; _
+                            | $EPSILON$
+
+optional-colon-typexpr ::= : typexpr
+                       |  $EPSILON$
+
+optional-equal-pattern ::= = pattern
+                        | $EPSILON$
+
+comma-pattern-nonempty-list ::= , pattern comma-pattern-nonempty-list
+                            |   , pattern
+
+semi-colon-pattern-list ::= ; pattern semi-colon-pattern-list
+                          | $EPSILON$        
+
+
+
+
+expr ::= value-path
+   |   constant
+   |   ( expr )
+   |   begin expr end
+   |   ( expr : typexpr )
+   |   expr nonempty-comma-expr-list
+   |   constr expr
+   |   ` tag-name expr
+   |   expr :: expr
+   |   [ expr semicolon-expr-list optional-colon ]
+   |   [| expr semicolon-expr-list optional-colon |]
+   |   { field optional-colon-typexpr optional-equal-expr colon-field-optional-typexpr-optional-equal-expr-list optional-colon }
+   |   { expr with field optional-colon-typexpr optional-equal-expr colon-field-optional-typexpr-optional-equal-expr-list optional-colon }
+   |   expr nonempty-argument-list
+   |   prefix-symbol expr
+   |   - expr
+   |   -. expr
+   |   expr infix-op expr
+   |   expr . field
+   |   expr . field <- expr
+   |   expr . ( expr )
+   |   expr . ( expr ) <- expr
+   |   expr . [ expr ]
+   |   expr . [ expr ] <- expr
+   |   if expr then expr
+    |    if expr then expr else expr
+   |   while expr do expr done
+   |   for value-name = expr ( to | downto ) expr do expr done
+   |   expr ; expr
+   |   match expr with pattern-matching
+   |   function pattern-matching
+   |   fun nonempty-parameter-list optional-colon-typexpr -> expr
+   |   try expr with pattern-matching
+   |   let optional-rec let-binding and-let-binding-list in expr
+   |   let exception constr-decl in expr
+   |   let module module-name module-name-module-type-list = module-expr in expr
+    |   let module module-name module-name-module-type-list : module-type  = module-expr in expr
+   |   ( expr :> typexpr )
+   |   ( expr : typexpr :> typexpr )
+   |   assert expr
+   |   lazy expr
+   |   local-open
+   |   object-expr
+
+
+module-name-module-type-list ::= ( module-name : module-type ) module-name-module-type-list
+                               | $EPSILON$
+
+and-let-binding-list ::= and let-binding
+                     |  $EPSILON$
+
+optional-rec ::= rec
+              | $EPSILON$
+
+parameter-list ::= parameter parameter-list
+                |  $EPSILON$
+
+nonempty-parameter-list ::= parameter nonempty-parameter-list
+                        |   parameter
+ 
+nonempty-argument-list ::= argument nonempty-argument-list
+                        |  argument
+
+colon-field-optional-typexpr-optional-equal-expr-list ::= ; field optional-colon-typexpr optional-equal-expr colon-field-optional-typexpr-optional-equal-expr-list
+                                                      | $EPSILON$
+
+optional-equal-expr ::= = expr
+                     | $EPSILON$
+
+nonempty-comma-expr-list ::= , expr
+                          |  , expr nonempty-comma-expr-list
+                        
+semicolon-expr-list ::= ; expr semicolon-expr-list
+                     |  $EPSILON$
+
+argument  ::=  expr
+   |   ~ label-name
+   |   ~ label-name : expr
+   |   ? label-name
+   |   ? label-name : expr
+ 
+optional-when-expr ::= when expr
+                    | $EPSILON$
+
+optional-vert ::= |
+               | $EPSILON$
+
+pattern-matching  ::=  optional-vert pattern optional-when-expr -> expr pattern-optional-when-expr-expr-list
+
+pattern-optional-when-expr-expr-list ::= | pattern optional-when-expr -> expr pattern-optional-when-expr-expr-list
+                                      | $EPSILON$
+ 
+let-binding  ::=  pattern = expr
+   |   value-name parameter-list optional-colon-typexpr = expr
+    |   value-name parameter-list optional-colon-typexpr :> typexpr = expr
+   |   value-name : poly-typexpr = expr 
+ 
+parameter  ::=  pattern
+   |   ~ label-name
+   |   ~ ( label-name optional-colon-typexpr )
+   |   ~ label-name : pattern
+   |   ? label-name
+   |   ? ( label-name optional-colon-typexpr optional-equal-expr )
+   |   ? label-name : pattern
+   |   ? label-name : ( pattern optional-colon-typexpr optional-equal-expr )
+ 
+local-open  ::=   
+   |   let open module-path in expr
+   |   module-path . ( expr )
+   |   module-path . [ expr ]
+   |   module-path . [| expr |]
+   |   module-path . { expr }
+   |   module-path . {< expr >}
+ 
+object-expr  ::=   
+   |   new class-path
+   |   object class-body end
+   |   expr # method-name
+   |   inst-var-name
+   |   inst-var-name <- expr
+   |   {< >}
+   |   {< inst-var-name optional-equal-expr colon-inst-var-name-equal-expr-list optional-colon >}
+
+colon-inst-var-name-equal-expr-list ::= ; inst-var-name optional-equal-expr colon-inst-var-name-equal-expr-list
+                                      | $EPSILON$
+
+type-definition  ::=  type typedef and-typedef-list
+                  | type nonrec typedef and-typedef-list
+
+and-typedef-list ::= and typedef
+                  | $EPSILON$
+ 
+typedef  ::=  typeconstr-name type-information
+         |  type-params typeconstr-name type-information
+ 
+type-information  ::=  optional-type-equation optional-type-representation type-constraint-list
+
+optional-type-equation ::= type-equation
+                        | $EPSILON$
+
+optional-type-representation ::= type-representation
+                             |  $EPSILON$
+
+type-constraint-list ::= type-constraint type-constraint-list
+                      | $EPSILON$
+ 
+type-equation  ::=  = typexpr
+ 
+type-representation  ::=  = optional-vert constr-decl vert-constr-decl-list
+   |   = record-decl
+   |   = |
+
+vert-constr-decl-list ::= | constr-decl
+                        | $EPSILON$
+ 
+type-params  ::=  type-param
+   |   ( type-param comma-type-param-list )
+ 
+comma-type-param-list ::= , type-param
+                       | $EPSILON$
+
+type-param  ::=  ' ident
+            |  ext-variance ' ident
+ 
+ext-variance  ::=  variance optional-injectivity
+                |  injectivity optional-variance
+
+optional-injectivity ::= injectivity
+                      | $EPSILON$
+                    
+optional-variance ::= variance
+                   | $EPSILON$
+ 
+variance  ::=  +
+       |   -
+ 
+injectivity  ::=   !
+ 
+record-decl  ::=  { field-decl colon-field-decl-list optional-colon }
+
+colon-field-decl-list ::= ; field-decl colon-field-decl-list
+                       | $EPSILON$
+ 
+constr-decl ::= constr-name optional-of-constr-args
+constr-decl ::= [ ] optional-of-constr-args
+constr-decl ::= ( :: ) optional-of-constr-args
+ 
+optional-of-constr-args ::= of constr-args
+                        | $EPSILON$
+
+constr-args  ::=  typexpr typexpr-star-list
+ 
+field-decl  ::= field-name : poly-typexpr
+              | mutable field-name : poly-typexpr
+ 
+type-constraint  ::=  constraint typexpr = typexpr
+
+
+exception-definition  ::=  exception constr-decl
+   |   exception constr-name = constr
+
+
+optional-question ::= ?
+                    | $EPSILON$
+
+class-type  ::=  typexpr -> class-type
+             |  optional-question label-name : typexpr -> class-type
+            |  class-body-type
+ 
+class-field-spec-list ::= class-field-spec class-field-spec-list
+                       | $EPSILON$
+
+class-body-type  ::=  object optional-paren-typexpr class-field-spec-list end
+    |    classtype-path
+     |    [ typexpr typexpr-comma-list ] classtype-path
+    |    let open module-path in class-body-type
+ 
+optional-paren-typexpr ::= ( typexpr )
+                        | $EPSILON$
+
+optional-mutable ::= mutable
+                    | $EPSILON$
+
+optional-virtual ::= virtual
+                    | $EPSILON$
+
+optional-private ::= private
+                    | $EPSILON$
+
+class-field-spec  ::=  inherit class-body-type
+    |    val optional-mutable optional-virtual inst-var-name : typexpr
+    |    val virtual mutable inst-var-name : typexpr
+    |    method optional-private optional-virtual method-name : poly-typexpr
+    |    method virtual private method-name : poly-typexpr
+    |    constraint typexpr = typexpr
+
+
+class-expr  ::=  class-path
+   |    [ typexpr typexpr-comma-list ] class-path
+   |    ( class-expr )
+   |    ( class-expr : class-type )
+   |    class-expr nonempty-argument-list
+   |    fun nonempty-parameter-list -> class-expr
+   |    let optional-rec let-binding and-let-binding-list in class-expr
+   |    object class-body end
+   |    let open module-path in class-expr
+ 
+optional-as-lowercase-ident ::= as lowercase-ident
+                             | $EPSILON$
+
+class-field  ::=  inherit class-expr optional-as-lowercase-ident
+   |    inherit ! class-expr optional-as-lowercase-ident
+   |    val  optional-mutable inst-var-name optional-colon-typexpr = expr
+   |    val !  optional-mutable inst-var-name optional-colon-typexpr = expr
+   |    val  optional-mutable virtual inst-var-name : typexpr
+   |    val virtual mutable inst-var-name : typexpr
+   |    method  optional-private method-name parameter-list optional-colon-typexpr = expr
+   |    method !  optional-private method-name parameter-list optional-colon-typexpr = expr
+   |    method  optional-private method-name : poly-typexpr = expr
+   |    method !  optional-private method-name : poly-typexpr = expr
+   |    method  optional-private virtual method-name : poly-typexpr
+   |    method virtual private method-name : poly-typexpr
+   |    constraint typexpr = typexpr
+   |    initializer expr
+
+class-body  ::=     class-field-list
+             |    ( pattern optional-colon-typexpr ) class-field-list
+
+
+class-field-list ::= class-field class-field-list
+                  |  $EPSILON$
+
+expr  ::= inst-var-name <- expr
+        |   {<  >}
+         |   {< inst-var-name = expr colon-inst-var-name-required-equal-expr-list optional-colon >}
+
+colon-inst-var-name-required-equal-expr-list ::= ; inst-var-name = expr colon-inst-var-name-required-equal-expr-list
+                                                | $EPSILON$
+
+
+and-class-binding-list ::= and class-binding
+                        | $EPSILON$
+
+class-definition  ::=  class class-binding and-class-binding-list
+
+optional-bracket-type-parameters ::= [ type-parameters ]
+                          | $EPSILON$
+ 
+optional-colon-class-type ::= : class-type
+                     | $EPSILON$
+
+class-binding  ::=  optional-virtual optional-bracket-type-parameters class-name parameter-list optional-colon-class-type = class-expr
+ 
+comma-prime-ident-list ::= , ' ident comma-prime-ident-list
+                        |  $EPSILON$
+
+type-parameters  ::=  ' ident comma-prime-ident-list
+
+
+and-class-spec-list ::= and class-spec and-class-spec-list
+                     | $EPSILON$
+
+class-specification  ::=  class class-spec and-class-spec-list
+ 
+class-spec  ::=  optional-virtual optional-bracket-type-parameters class-name : class-type
+
+
+and-classtype-def-list ::= and classtype-def and-classtype-def-list
+                        | $EPSILON$
+
+
+classtype-definition  ::=  class type classtype-def and-classtype-def-list
+ 
+classtype-def  ::=  optional-virtual optional-bracket-type-parameters class-name = class-body-type
+
+
+optional-double-colon ::= ;;
+                       | $EPSILON$
+
+specificiation-double-colon-list ::= specification optional-double-colon specificiation-double-colon-list
+                                  | $EPSILON$
+
+optional-functor ::= functor
+                  | $EPSILON$
+
+and-mod-constraint-list ::= and mod-constraint and-mod-constraint-list
+                         | $EPSILON$
+
+optional-type-params ::= type-params
+                      | $EPSILON$
+
+module-type  ::=  modtype-path
+    |     sig   specificiation-double-colon-list   end
+    |     optional-functor   (   module-name   :   module-type   )   ->   module-type
+    |     module-type   ->   module-type
+    |     module-type   with   mod-constraint   and-mod-constraint-list
+    |     (   module-type   )
+ 
+mod-constraint  ::=  type   optional-type-params   typeconstr   type-equation   type-constraint-list
+    |     module   module-path   =   extended-module-path
+ 
+specification  ::=  val   value-name   :   typexpr
+    |     type-definition
+    |     exception   constr-decl
+    |     class-specification
+    |     classtype-definition
+    |     module   module-name   :   module-type
+    |     module   module-name   module-name-module-type-list :   module-type
+    |     module   type   modtype-name
+    |     module   type   modtype-name   =   module-type
+    |     open   module-path
+    |     include   module-type
+
+
+optional-module-items ::= module-items
+                        | $EPSILON$
+
+optional-colon-module-type ::= : module-type
+                            | $EPSILON$
+
+module-expr  ::=  module-path
+    |     struct   optional-module-items   end
+    |     functor   (   module-name   :   module-type   )   ->   module-expr
+    |     module-expr   (   module-expr   )
+    |     (   module-expr   )
+    |     (   module-expr   :   module-type   )
+ 
+double-semicolon-list ::= ;; double-semicolon-list
+                       | $EPSILON$
+
+definition-or-double-colon-expr ::= definition
+                                 | ;; expr
+
+double-semi-list-def-or-double-colon-expr-list ::= double-semicolon-list   definition-or-double-colon-expr double-semi-list-def-or-double-colon-expr-list
+                                              | $EPSILON$
+
+module-items  ::=  double-semicolon-list   definition double-semi-list-def-or-double-colon-expr-list   double-semicolon-list
+                |   double-semicolon-list   expr   double-semi-list-def-or-double-colon-expr-list   double-semicolon-list
+ 
+definition  ::=  let   optional-rec   let-binding   and-let-binding-list
+    |     type-definition
+    |     exception-definition
+    |     class-definition
+    |     classtype-definition
+    |     module   module-name   module-name-module-type-list optional-colon-module-type      =   module-expr
+    |     module   type   modtype-name   =   module-type
+    |     open   module-path
+    |     include   module-expr
+
+
+specification-list ::= specification optional-double-colon specification-list
+                    | $EPSILON$
+
+unit-interface ::= specification-list
+
+unit-implementation ::= optional-module-items
+
+ocaml-file ::= unit-interface
+            | unit-implementation

@@ -132,13 +132,15 @@ let build_action_table cfg canonical_collection conflict_resolution_opt =
   List.fold_left (fun (acc_action_map_list, cc_index) canonical_set  ->
     let map_for_this_cc = 
     LR1ItemSet.fold ( fun item acc_action_map ->
-      match item.next_symbols with
+      let production = Iarray.get cfg.production_array item.production in
+      let next_symbols = get_to_symbols_after_n production item.dot_pos in
+      match next_symbols with
       | [] ->
         if item.from_symbol = cfg.start_symbol && item.lookahead = eof then
-          let new_action = Accept {from_symbol = item.from_symbol; to_symbols = item.prev_symbols;} in
+          let new_action = Accept production in
           insert_action acc_action_map eof new_action conflict_resolution_opt cc_index
         else 
-          let new_action = Reduce {from_symbol = item.from_symbol; to_symbols = item.prev_symbols;} in
+          let new_action = Reduce production in
           insert_action acc_action_map item.lookahead new_action conflict_resolution_opt cc_index
       | next_symbol :: remaining_symbols ->
         if SymbolSet.mem next_symbol cfg.terminals then
@@ -150,7 +152,7 @@ let build_action_table cfg canonical_collection conflict_resolution_opt =
         else
           (**ignore nonterminals*)
           acc_action_map
-    ) canonical_set SymbolMap.empty
+    ) canonical_set.lr1_item_set SymbolMap.empty
     in
     (map_for_this_cc :: acc_action_map_list, cc_index + 1)
   ) ([], 0) canonical_collection.canonical_sets
