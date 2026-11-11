@@ -226,6 +226,9 @@ let process_new_canonical_set canonical_set current_canonical_collection new_can
 let construct_canonical_collection cfg = 
   let first_sets = FirstSets.compute_first_sets cfg in
   let rec build_canonical_collection current_canonical_collection new_canonical_sets =
+    let () = print_endline 
+      ("\r current_canonical_collection_size: " ^ (string_of_int (List.length current_canonical_collection.canonical_sets)) ^"    ") 
+    in
     if List.is_empty new_canonical_sets then
       current_canonical_collection
     else

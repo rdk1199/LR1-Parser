@@ -132,7 +132,6 @@ let build_action_table cfg canonical_collection conflict_resolution_opt =
   List.fold_left (fun (acc_action_map_list, cc_index) canonical_set  ->
     let map_for_this_cc = 
     LR1ItemSet.fold ( fun item acc_action_map ->
-      (**TODO: detect conflicts*)
       match item.next_symbols with
       | [] ->
         if item.from_symbol = cfg.start_symbol && item.lookahead = eof then
@@ -195,6 +194,10 @@ let build_goto_table cfg canonical_collection =
 
 let build_parse_table cfg conflict_resolution_strategy = 
   let canonical_collection = CanonicalCollection.construct_canonical_collection cfg in
+  let () = print_endline ("Canonical collection constructed: " ^ (string_of_int (List.length canonical_collection.canonical_sets)) ^ " states,\n"
+    ^ (string_of_int (List.length canonical_collection.transitions)) ^ "\n"
+  )
+  in
   {
     action_table = build_action_table cfg canonical_collection conflict_resolution_strategy;
     goto_table = build_goto_table cfg canonical_collection;
