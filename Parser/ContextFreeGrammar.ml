@@ -49,6 +49,17 @@ let string_of_symbol_set symbol_set =
     acc_str ^ " " ^ symbol  
   ) symbol_set ""
 
+let string_of_cfg cfg =
+  "Start symbol: " ^ cfg.start_symbol ^ "\n" ^
+  "Terminals: " ^ (string_of_symbol_set cfg.terminals) ^ "\n" ^
+  "Nonterminals: " ^ (string_of_symbol_set cfg.nonterminals) ^ "\n" ^
+  "Productions: " ^ (ProductionMap.fold (fun  _ production_list acc_str ->
+    acc_str ^ List.fold_left (fun inner_acc_str production ->
+      inner_acc_str ^ " " ^ (string_of_production production) ^ "\n"
+    ) "" production_list
+  )  cfg.productions "")
+
+
 let string_of_symbol_to_set_map map =
   SymbolMap.fold (fun symbol symbol_set acc_str ->
     let set_str = SymbolSet.fold(fun symbol acc_str ->
