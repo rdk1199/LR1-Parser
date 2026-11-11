@@ -11,20 +11,27 @@ let build_production_from_line line curr_nonterminal =
     ([], curr_nonterminal)
   else if trimmed_line.[0] = '|' then
     (**reusing existing nonterminal*)
-    let () = assert(String.length curr_nonterminal > 0) in
-    let rem_string = String.sub trimmed_line 1 ((String.length trimmed_line) - 1) in
-    let rhs_words = Str.split (Str.regexp "[ \t\r\n]+") rem_string in
-    (curr_nonterminal :: rhs_words, curr_nonterminal)
+    if String.length curr_nonterminal > 0 then
+      let rem_string = String.sub trimmed_line 1 ((String.length trimmed_line) - 1) in
+      let rhs_words = Str.split (Str.regexp "[ \t\r\n]+") rem_string in
+      (curr_nonterminal :: rhs_words, curr_nonterminal)
+    else
+      let () = print_endline ("CFG read failed on line " ^ line) in
+      assert(false); 
   else 
     (**new nonterminal*)
     let split_string = Str.split (Str.regexp "[ \t\r\n]+") trimmed_line in
-    (**Should have at least lhs ::= rhs1*)
-    let () = assert(List.length split_string > 2) in
-    let new_nt = List.hd split_string in
-    let headless_list = List.tl split_string in
-    let () = assert(List.hd headless_list = "::=") in
-    let rhs_list = List.tl headless_list in
-    (new_nt :: rhs_list, new_nt)
+    match split_string with
+    | new_nt :: "::=" :: rhs_list ->
+      (new_nt :: rhs_list, new_nt)
+    | _ ->
+      let () = print_endline ("CFG read failed on line " ^ line ^ ", split:\n") in
+      let split_output = List.fold_left (fun acc_str word ->
+        acc_str ^ " " ^ word ^ "\n"
+      ) "" split_string
+      in
+      let () = print_endline split_output in
+      assert(false)
 
 
 let read_cfg_from_file file_name = 
