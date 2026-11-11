@@ -94,14 +94,17 @@ let insert_action action_map symbol action conflict_resolution_opt cc_index =
       new_map (**No conflict because actions are the same*)
     else
       match existing_action, action, conflict_resolution_opt with
-      | _, _, Fail                                    (**If conflict resolution strategy is to fail, then always fail*)
-      | Accept _, _, _                                (**Don't resolve accept conflicts*)
-      | _, Accept _, _      
-      | Shift _, Shift _, _                           (**Don't resolve shift-shift conflicts*)
-      | Reduce _, Reduce _, _ -> 
+      | _, _, Fail ->                                    (**If conflict resolution strategy is to fail, then always fail*)
         let () = print_endline ("Unresolvable conflict for state " ^ (string_of_int cc_index) ^ ", symbol " ^ symbol ^ " :\n") in
         let () = print_endline ((string_of_action existing_action) ^ "  |  " ^ (string_of_action action) ^ "\n") in
         assert(false)        (**Don't resolve reduce-reduce conflicts*)
+      | Accept _, _, _                                (**Don't resolve accept conflicts*)
+      | _, Accept _, _      
+      | Shift _, Shift _, _                           (**Don't resolve shift-shift conflicts*)
+      | Reduce _, Reduce _, _ ->                      (**Don't resolve reduce-reduce conflicts*)
+        let () = print_endline ("Unresolvable conflict for state " ^ (string_of_int cc_index) ^ ", symbol " ^ symbol ^ " :\n") in
+        let () = print_endline ((string_of_action existing_action) ^ "  |  " ^ (string_of_action action) ^ "\n") in
+        new_map        (**Report, overwrite, and continue*)
       | Shift _, Reduce _, PreferShift ->                
         (**Don't override shift if we prefer shifts*)
         let () = print_endline (string_of_shift_reduce_conflict_message existing_action action conflict_resolution_opt cc_index symbol) in 
