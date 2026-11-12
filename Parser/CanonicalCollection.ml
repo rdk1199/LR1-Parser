@@ -180,8 +180,9 @@ let cc_closure sized_lr1_set cfg first_sets closure_map first_set_map =
     ({lr1_item_set = new_union; size = new_union_size}, item_added_closure_map, new_first_set_map)  
   ) sized_lr1_set.lr1_item_set ({lr1_item_set = LR1ItemSet.empty; size = 0;} , closure_map, first_set_map)
 
-let cc_goto sized_lr1_set symbol cfg first_sets closure_map first_set_map =
+let cc_goto sized_closed_lr1_set symbol cfg first_sets closure_map first_set_map =
   let open ContextFreeGrammar in
+
   let moved = LR1ItemSet.fold (fun item accum_set ->
     let production = Iarray.get cfg.production_array item.production in
     let next_symbols = get_to_symbols_after_n production item.dot_pos in 
@@ -198,10 +199,13 @@ let cc_goto sized_lr1_set symbol cfg first_sets closure_map first_set_map =
           lookahead = item.lookahead
         } in
         LR1ItemSet.add new_item accum_set
-  ) sized_lr1_set.lr1_item_set LR1ItemSet.empty
+  ) sized_closed_lr1_set.lr1_item_set LR1ItemSet.empty
   in
   let sized_moved = {lr1_item_set = moved; size = LR1ItemSet.cardinal moved} in
-  cc_closure sized_moved cfg first_sets closure_map first_set_map
+  let final_goto, final_closure_map, final_first_set_map = cc_closure sized_moved cfg first_sets closure_map first_set_map in
+  (**convert back to kernel*)
+  let goto_kernel_lr1_items = kernelize final_goto.lr1_item_set cfg in
+  {lr1_item_set = goto_kernel_lr1_items; size = LR1ItemSet.cardinal goto_kernel_lr1_items;}, final_closure_map, final_first_set_map
 
 let cc_get_start_items cfg =
   let open ContextFreeGrammar in
@@ -225,62 +229,67 @@ let item_set_list_contains_set item_set_list set =
   | Some i -> (true, i)
 
 let process_new_canonical_set canonical_set current_canonical_collection new_canonical_sets new_new_canonical_sets new_canonical_set_index cfg first_sets closure_map first_set_map =
+    let open ContextFreeGrammar in
+    let closure, start_closure_map, start_first_set_map = cc_closure canonical_set cfg first_sets closure_map first_set_map in
     (**Get the index of the new_canonical_set we are currently processing*)
     (**We index from the END of the list because we are prepending to the lists, so need to keep indices consistent*)
     let transition_from_index = 
       (List.length current_canonical_collection.canonical_sets) + (List.length new_canonical_sets) - new_canonical_set_index - 1
     in
-    let all_items_new_canonical_sets, all_items_new_transitions, all_items_new_closure_map, all_items_new_first_set_map =
-    LR1ItemSet.fold (fun item (inner_accum_new_canonical_sets, inner_accum_new_transitions, inner_accum_closure_map, inner_accum_first_set_map) ->
-      let production = Iarray.get cfg.ContextFreeGrammar.production_array item.production in
-      let next_symbols = ContextFreeGrammar.get_to_symbols_after_n production item.dot_pos in
+    let all_items_new_canonical_sets, all_items_new_transitions, all_items_new_closure_map, all_items_new_first_set_map, _ =
+    LR1ItemSet.fold (fun item (inner_accum_new_canonical_sets, inner_accum_new_transitions, inner_accum_closure_map, inner_accum_first_set_map, processed_symbols) ->
+      let production = Iarray.get cfg.production_array item.production in
+      let next_symbols = get_to_symbols_after_n production item.dot_pos in
       match next_symbols with
-      | [] -> (inner_accum_new_canonical_sets, inner_accum_new_transitions, inner_accum_closure_map, inner_accum_first_set_map) 
+      | [] -> (inner_accum_new_canonical_sets, inner_accum_new_transitions, inner_accum_closure_map, inner_accum_first_set_map, processed_symbols) 
       | first_symbol :: remaining_symbols ->
-        let goto_cc_set, new_inner_accum_closure_map, new_inner_accum_first_set_map = cc_goto canonical_set first_symbol cfg first_sets inner_accum_closure_map inner_accum_first_set_map in
-        (**Check if the computed goto set was already processed*)
-        let (is_old_cc_set, old_cc_set_index) = item_set_list_contains_set current_canonical_collection.canonical_sets goto_cc_set in 
-        (**Check if the computed goto set is one of the ones we are processing in this iteration of build_canonical_collection*)
-        let (is_new_cc_set, new_cc_set_index) = item_set_list_contains_set new_canonical_sets goto_cc_set in
-        (**Check if the computed goto set is one of the ones already found while checking a previous new canonical set*)
-        let (is_new_new_cc_set, new_new_cc_set_index) = item_set_list_contains_set new_new_canonical_sets goto_cc_set in
-        (**Check if the computed goto set is one of the ones already found while checking a previous item in this new canonical set*)
-        let (is_new_new_new_cc_set, new_new_new_cc_set_index) = item_set_list_contains_set inner_accum_new_canonical_sets goto_cc_set in
+        if SymbolSet.mem first_symbol processed_symbols then
+          (inner_accum_new_canonical_sets, inner_accum_new_transitions, inner_accum_closure_map, inner_accum_first_set_map, processed_symbols)
+        else
+          let goto_cc_set, new_inner_accum_closure_map, new_inner_accum_first_set_map = cc_goto closure first_symbol cfg first_sets inner_accum_closure_map inner_accum_first_set_map in
+          (**Check if the computed goto set was already processed*)
+          let (is_old_cc_set, old_cc_set_index) = item_set_list_contains_set current_canonical_collection.canonical_sets goto_cc_set in 
+          (**Check if the computed goto set is one of the ones we are processing in this iteration of build_canonical_collection*)
+          let (is_new_cc_set, new_cc_set_index) = item_set_list_contains_set new_canonical_sets goto_cc_set in
+          (**Check if the computed goto set is one of the ones already found while checking a previous new canonical set*)
+          let (is_new_new_cc_set, new_new_cc_set_index) = item_set_list_contains_set new_new_canonical_sets goto_cc_set in
+          (**Check if the computed goto set is one of the ones already found while checking a previous item in this new canonical set*)
+          let (is_new_new_new_cc_set, new_new_new_cc_set_index) = item_set_list_contains_set inner_accum_new_canonical_sets goto_cc_set in
 
-        let transition_to_index = 
-        if is_old_cc_set then
-          (List.length current_canonical_collection.canonical_sets) - 1 - old_cc_set_index
-        else if is_new_cc_set then
-          (List.length current_canonical_collection.canonical_sets) +
-          (List.length new_canonical_sets) - 1 - new_cc_set_index
-        else if is_new_new_cc_set then
-          (List.length current_canonical_collection.canonical_sets) +
-          (List.length new_canonical_sets) +
-          (List.length new_new_canonical_sets) - 1 - new_new_cc_set_index
-        else if is_new_new_new_cc_set then
-          (List.length current_canonical_collection.canonical_sets) +
-          (List.length new_canonical_sets) +
-          (List.length new_new_canonical_sets) +
-          (List.length inner_accum_new_canonical_sets) - 1 - new_new_new_cc_set_index
-        else
-          (**NEW canonical set*)
-          (*let () = print_endline ("found new canonical set \n" ^ (string_of_lr1_item_set (goto_cc_set.lr1_item_set)) ^ "\n") in*)
-          (List.length current_canonical_collection.canonical_sets) +
-          (List.length new_canonical_sets) +
-          (List.length new_new_canonical_sets) +
-          (List.length inner_accum_new_canonical_sets)
-        in
-        let new_transition = {
-          from_state = transition_from_index;
-          to_state = transition_to_index;
-          symbol = first_symbol;
-        }
-        in
-        if not (is_old_cc_set || is_new_cc_set || is_new_new_cc_set || is_new_new_new_cc_set ) then
-          (goto_cc_set :: inner_accum_new_canonical_sets, new_transition :: inner_accum_new_transitions, new_inner_accum_closure_map, new_inner_accum_first_set_map)
-        else
-          (inner_accum_new_canonical_sets, new_transition :: inner_accum_new_transitions, new_inner_accum_closure_map, new_inner_accum_first_set_map)
-    ) canonical_set.lr1_item_set ([], [], closure_map, first_set_map)
+          let transition_to_index = 
+          if is_old_cc_set then
+            (List.length current_canonical_collection.canonical_sets) - 1 - old_cc_set_index
+          else if is_new_cc_set then
+            (List.length current_canonical_collection.canonical_sets) +
+            (List.length new_canonical_sets) - 1 - new_cc_set_index
+          else if is_new_new_cc_set then
+            (List.length current_canonical_collection.canonical_sets) +
+            (List.length new_canonical_sets) +
+            (List.length new_new_canonical_sets) - 1 - new_new_cc_set_index
+          else if is_new_new_new_cc_set then
+            (List.length current_canonical_collection.canonical_sets) +
+            (List.length new_canonical_sets) +
+            (List.length new_new_canonical_sets) +
+            (List.length inner_accum_new_canonical_sets) - 1 - new_new_new_cc_set_index
+          else
+            (**NEW canonical set*)
+            (*let () = print_endline ("found new canonical set \n" ^ (string_of_lr1_item_set (goto_cc_set.lr1_item_set)) ^ "\n") in*)
+            (List.length current_canonical_collection.canonical_sets) +
+            (List.length new_canonical_sets) +
+            (List.length new_new_canonical_sets) +
+            (List.length inner_accum_new_canonical_sets)
+          in
+          let new_transition = {
+            from_state = transition_from_index;
+            to_state = transition_to_index;
+            symbol = first_symbol;
+          }
+          in
+          if not (is_old_cc_set || is_new_cc_set || is_new_new_cc_set || is_new_new_new_cc_set ) then
+            (goto_cc_set :: inner_accum_new_canonical_sets, new_transition :: inner_accum_new_transitions, new_inner_accum_closure_map, new_inner_accum_first_set_map, SymbolSet.add first_symbol processed_symbols)
+          else
+            (inner_accum_new_canonical_sets, new_transition :: inner_accum_new_transitions, new_inner_accum_closure_map, new_inner_accum_first_set_map, SymbolSet.add first_symbol processed_symbols)
+    ) closure.lr1_item_set ([], [], start_closure_map, start_first_set_map, SymbolSet.empty)
     in
     (all_items_new_canonical_sets, all_items_new_transitions, all_items_new_closure_map, all_items_new_first_set_map)
     
@@ -307,9 +316,18 @@ let construct_canonical_collection cfg =
   in
   let start_items = cc_get_start_items cfg in
   let start_item_set =  LR1ItemSet.of_list start_items in
-  let start_closure, closure_map, first_set_map = cc_closure ({lr1_item_set = start_item_set; size = LR1ItemSet.cardinal start_item_set;}) cfg first_sets LR1ItemMap.empty FirstSets.FirstSetMap.empty in
-  let cc_with_duplicates = build_canonical_collection {canonical_sets = []; transitions = [];} [start_closure;] closure_map first_set_map in
+  (*let start_closure, closure_map, first_set_map = cc_closure ({lr1_item_set = start_item_set; size = LR1ItemSet.cardinal start_item_set;}) cfg first_sets LR1ItemMap.empty FirstSets.FirstSetMap.empty in*)
+  let cc_with_duplicates = build_canonical_collection {canonical_sets = []; transitions = [];} [{lr1_item_set = start_item_set; size = LR1ItemSet.cardinal start_item_set};]  LR1ItemMap.empty FirstSets.FirstSetMap.empty in
   (**our algorithm doesn't filter duplicate transitions, so filter them now*)
   (**Also reverse the collection list so the states are in order*)
-  {canonical_sets = (List.rev cc_with_duplicates.canonical_sets); transitions = List.sort_uniq compare_cc_transitions cc_with_duplicates.transitions}
+
+  let final_canonical_set_list = List.fold_left (fun acc_list canonical_set ->
+    (**TODO: should save the memoization tables built in build_canonical_collection to use here*)
+    let closure, _, _ = cc_closure canonical_set  cfg first_sets LR1ItemMap.empty FirstSets.FirstSetMap.empty in
+    closure :: acc_list;
+  ) [] cc_with_duplicates.canonical_sets
+  in
+
+  (**Note the above list fold reverses the state order, so we don't hvae to reverse*)
+  {canonical_sets = final_canonical_set_list; transitions = List.sort_uniq compare_cc_transitions cc_with_duplicates.transitions}
   
