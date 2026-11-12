@@ -16,3 +16,5 @@ Action/Goto tables can be written and read from text files with ParseIO.ParseTab
 table constructions do not have to be done more than once.
 
 Depends on the Lexer library: https://github.com/rdk1199/Lexer
+
+Still working on optimizations
