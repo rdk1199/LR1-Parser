@@ -1,0 +1,20 @@
+12
+0 ( Shift 3
+1 $EOF$ Accept Goal ::=  List
+1 ( Shift 3
+2 $EOF$ Reduce List ::=  Pair
+2 ( Reduce List ::=  Pair
+3 ( Shift 4
+3 ) Shift 6
+4 ( Shift 4
+4 ) Shift 10
+5 ) Shift 8
+6 $EOF$ Reduce Pair ::=  ( )
+6 ( Reduce Pair ::=  ( )
+7 $EOF$ Reduce List ::=  List Pair
+7 ( Reduce List ::=  List Pair
+8 $EOF$ Reduce Pair ::=  ( Pair )
+8 ( Reduce Pair ::=  ( Pair )
+9 ) Shift 11
+10 ) Reduce Pair ::=  ( )
+11 ) Reduce Pair ::=  ( Pair )

@@ -1,3 +1,9 @@
+module FirstSetMap = Map.Make(struct
+  type t = string list
+  let compare = List.compare String.compare
+end
+)
+
 let first_set_process_production production first_set_map =
     let open ContextFreeGrammar in
     let from_symbol = production.from_symbol in
@@ -71,22 +77,27 @@ let compute_first_sets cfg =
   accumulate_first_sets SymbolMap.empty start_map
 
 (**Compute the first set of a string of symbols, given the first set map of the CFG*)
-let compute_first_set_of_symbol_list symbol_list first_sets =
+let memoized_compute_first_set_of_symbol_list symbol_list first_sets first_set_map =
   let open ContextFreeGrammar in
-  let rec compute_first_sets_of_symbol_list_rec accum_set rem_symbols = 
-    match rem_symbols with
-    (**We have reached the end of all the symbols, meaning they must have all contained epsilon, so the
-      string must also have epsilon as a possible first symbol*)
-    | [] -> SymbolSet.add epsilon accum_set
-    | symbol :: tail -> 
-      match SymbolMap.find_opt symbol first_sets with
-      | None -> accum_set
-      | Some first_set ->
-        if not (SymbolSet.mem epsilon first_set) then
-          SymbolSet.union accum_set first_set
-        else
-          let first_set_no_epsilon = SymbolSet.remove epsilon first_set in
-          compute_first_sets_of_symbol_list_rec (SymbolSet.union first_set_no_epsilon accum_set) tail
-  in
-  compute_first_sets_of_symbol_list_rec SymbolSet.empty symbol_list
+  match FirstSetMap.find_opt symbol_list first_set_map with
+  | Some result -> 
+    (result, first_set_map)
+  | None ->
+    let rec compute_first_sets_of_symbol_list_rec accum_set rem_symbols = 
+      match rem_symbols with
+      (**We have reached the end of all the symbols, meaning they must have all contained epsilon, so the
+        string must also have epsilon as a possible first symbol*)
+      | [] -> SymbolSet.add epsilon accum_set
+      | symbol :: tail -> 
+        match SymbolMap.find_opt symbol first_sets with
+        | None -> accum_set
+        | Some first_set ->
+          if not (SymbolSet.mem epsilon first_set) then
+            SymbolSet.union accum_set first_set
+          else
+            let first_set_no_epsilon = SymbolSet.remove epsilon first_set in
+            compute_first_sets_of_symbol_list_rec (SymbolSet.union first_set_no_epsilon accum_set) tail
+    in
+    let first_set = compute_first_sets_of_symbol_list_rec SymbolSet.empty symbol_list in
+    (first_set, FirstSetMap.add symbol_list first_set first_set_map)
 

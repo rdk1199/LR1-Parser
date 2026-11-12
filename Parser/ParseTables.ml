@@ -121,10 +121,6 @@ let insert_action action_map symbol action conflict_resolution_opt cc_index =
         let () = print_endline (string_of_shift_reduce_conflict_message existing_action action conflict_resolution_opt cc_index symbol) in
         new_map      
 
-
- 
-
-
 let build_action_table cfg canonical_collection conflict_resolution_opt = 
   let open ContextFreeGrammar in
   let open CanonicalCollection in
