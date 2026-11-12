@@ -19,8 +19,9 @@ let () = write_goto_table_to_file "test/new_paren_goto" paren_parse_tables.goto_
 
 let ocaml_cfg = read_cfg_from_file "test/OCamlGrammar"
 
-let ocaml_canonical_collection = construct_canonical_collection ocaml_cfg
-let () = print_endline (string_of_canonical_collection ocaml_canonical_collection)
+let ocaml_parse_tables = build_parse_table ocaml_cfg PreferShift
+let () = write_action_table_to_file "test/ocaml_action" ocaml_parse_tables.action_table
+let () = write_goto_table_to_file "test/ocaml_goto" ocaml_parse_tables.goto_table
 
 
 
